@@ -9,7 +9,7 @@ import {
 import {
   SymbolRegistry,
   type EffectInstanceLike,
-} from '..//registry.js';
+} from '../registry.js';
 
 function makeNode(kind: Kind): Node {
   return { kind, deps: new Set<Node>(), subs: new Set<Node>() };
