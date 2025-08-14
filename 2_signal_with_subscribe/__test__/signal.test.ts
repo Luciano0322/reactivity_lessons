@@ -1,4 +1,3 @@
-// signal.test.ts
 import { describe, it, expect } from 'vitest';
 import { signal } from '../signal.js';
 import {
