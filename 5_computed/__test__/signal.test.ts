@@ -1,8 +1,7 @@
-// signal-with-markStale.test.ts
 import { describe, it, expect, vi } from 'vitest';
 
 import { signal } from '../signal.js';
-import * as computedMod from '../computed.js';
+import { computed } from '../computed.js';
 import {
   withObserver,
   type Node,
@@ -27,8 +26,6 @@ function attachEffectInstance(node: Node, impl?: Partial<EffectInstanceLike>) {
 describe('signal(get)', () => {
   it('returns current value; inside withObserver it tracks dependency (observer -> signal)', () => {
     const s = signal(123);
-
-    // 非觀察者環境：只取值
     expect(s.get()).toBe(123);
 
     const obs = makeNode('effect');
@@ -36,13 +33,12 @@ describe('signal(get)', () => {
       expect(s.get()).toBe(123);
     });
 
-    // 追蹤建邊（observer -> signal）
     expect(obs.deps.size).toBe(1);
     const dep = [...obs.deps][0];
     expect(dep?.subs.has(obs)).toBe(true);
   });
 
-  it('multiple get() within the same observer does not duplicate edges (Set de-dupe)', () => {
+  it('multiple get() within same observer is de-duped', () => {
     const s = signal('x');
     const obs = makeNode('computed');
 
@@ -58,118 +54,111 @@ describe('signal(get)', () => {
   });
 });
 
-describe('signal(set) -> schedules effects, marks computed as stale', () => {
-  it('value change schedules all effect subscribers and calls markStale for computed subscribers', () => {
+describe('signal(set) -> schedules effects, marks computed stale', () => {
+  it('schedules all effect subscribers', () => {
     const s = signal(0);
 
-    // 兩個 effect 訂閱者
     const ef1 = makeNode('effect');
     const ef2 = makeNode('effect');
     const inst1 = attachEffectInstance(ef1);
     const inst2 = attachEffectInstance(ef2);
 
-    // 一個 computed 訂閱者
-    const c = makeNode('computed');
-    // 為了驗證 markStale 被呼叫
-    const staleSpy = vi.spyOn(computedMod, 'markStale');
-
-    // 顯式訂閱（三個下游）
     const unsub1 = s.subscribe(ef1);
     const unsub2 = s.subscribe(ef2);
-    const unsub3 = s.subscribe(c);
 
     s.set(1);
 
-    // effects -> schedule()
     expect(inst1.schedule).toHaveBeenCalledTimes(1);
     expect(inst2.schedule).toHaveBeenCalledTimes(1);
 
-    // computed -> markStale 被呼叫一次，參數即 c
-    expect(staleSpy).toHaveBeenCalledTimes(1);
-    expect(staleSpy).toHaveBeenCalledWith(c);
-
-    unsub1(); unsub2(); unsub3();
-    staleSpy.mockRestore();
+    unsub1(); unsub2();
   });
 
-  it('updater form set(fn) works and triggers schedules/marking when value changes', () => {
+  it('marks downstream computed as stale (behavioral check, no spy)', () => {
+    const s = signal(1);
+    const c = computed(() => s.get() * 2);
+
+    // 建立依賴（computed -> signal）
+    expect(c.get()).toBe(2);
+    expect(c._node.stale).toBe(false);
+
+    // 改變 signal，應讓 c 變 stale
+    s.set(5);
+    expect(c._node.stale).toBe(true);
+
+    // 下次讀取才會重算
+    expect(c.get()).toBe(10);
+    expect(c._node.stale).toBe(false);
+  });
+
+  it('updater form set(fn) works', () => {
     const s = signal(10);
     const ef = makeNode('effect');
     const inst = attachEffectInstance(ef);
-    const c = makeNode('computed');
-    const staleSpy = vi.spyOn(computedMod, 'markStale');
-
-    const unsubEf = s.subscribe(ef);
-    const unsubC = s.subscribe(c);
+    const unsub = s.subscribe(ef);
 
     s.set(prev => prev + 5); // 10 -> 15
-
     expect(s.get()).toBe(15);
     expect(inst.schedule).toHaveBeenCalledTimes(1);
-    expect(staleSpy).toHaveBeenCalledTimes(1);
-    expect(staleSpy).toHaveBeenCalledWith(c);
 
-    unsubEf(); unsubC();
-    staleSpy.mockRestore();
+    unsub();
   });
 
-  it('custom equals prevents updates, thus no schedule and no markStale', () => {
-    // comparator：只看 n 欄位是否相同
+  it('custom equals prevents updates (no schedules, computed stays not-stale)', () => {
     const s = signal({ n: 1, x: 'a' }, (a, b) => a.n === b.n);
 
     const ef = makeNode('effect');
     const inst = attachEffectInstance(ef);
-    const c = makeNode('computed');
-    const staleSpy = vi.spyOn(computedMod, 'markStale');
+    const unsubEf = s.subscribe(ef);
 
-    const u1 = s.subscribe(ef);
-    const u2 = s.subscribe(c);
+    const c = computed(() => s.get(), (a, b) => a.n === b.n);
+    c.get(); // 初始化，非 stale
+    const wasStale = c._node.stale;
 
-    // n 相同 -> equals 為真 -> 不更新、不調度、不髒化
-    s.set({ n: 1, x: 'changed' });
-
+    s.set({ n: 1, x: 'changed' }); // equals:true -> 不更新
     expect(s.get()).toEqual({ n: 1, x: 'a' });
     expect(inst.schedule).not.toHaveBeenCalled();
-    expect(staleSpy).not.toHaveBeenCalled();
+    expect(c._node.stale).toBe(wasStale); // 不會被標髒
 
-    u1(); u2();
-    staleSpy.mockRestore();
+    unsubEf();
   });
 
-  it('no subscribers: set() should not throw and still update value', () => {
+  it('no subscribers: set() updates value and no throw', () => {
     const s = signal(1);
     expect(() => s.set(2)).not.toThrow();
     expect(s.get()).toBe(2);
   });
 
-  it('multiple effect & computed subscribers all get scheduled/marked on change', () => {
+  it('multiple effects & computeds are all affected', () => {
     const s = signal(0);
 
-    const effects = Array.from({ length: 3 }, () => makeNode('effect'));
+    const effects = Array.from({ length: 2 }, () => makeNode('effect'));
     const insts = effects.map(n => attachEffectInstance(n));
-    const computeds = Array.from({ length: 2 }, () => makeNode('computed'));
-    const staleSpy = vi.spyOn(computedMod, 'markStale');
+    const computeds = Array.from({ length: 2 }, () => computed(() => s.get() + 1));
 
     const unsubs = [
       ...effects.map(n => s.subscribe(n)),
-      ...computeds.map(n => s.subscribe(n)),
+      // 讓每個 computed 建立依賴
+      ...computeds.map(c => {
+        c.get();
+        // 讓 signal 知道這些 computed 是下游：由 computed.get() -> track -> link 建立
+        return () => c.dispose();
+      }),
     ];
 
     s.set(99);
 
+    // effects 被 schedule
     insts.forEach(inst => expect(inst.schedule).toHaveBeenCalledTimes(1));
-    expect(staleSpy).toHaveBeenCalledTimes(computeds.length);
-    computeds.forEach(c => {
-      expect(staleSpy).toHaveBeenCalledWith(c);
-    });
+    // computeds 被標髒
+    computeds.forEach(c => expect(c._node.stale).toBe(true));
 
     unsubs.forEach(u => u());
-    staleSpy.mockRestore();
   });
 });
 
 describe('signal.subscribe(observer)', () => {
-  it('links observer -> signal and returns an unsubscribe function', () => {
+  it('links and returns unsubscribe', () => {
     const s = signal('hi');
     const obs = makeNode('effect');
 
