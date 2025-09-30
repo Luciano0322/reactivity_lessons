@@ -39,37 +39,38 @@
 ## Lesson 7: react case
 
 對應系列文章中，React 應用的內容  
-👉 [對應 React (I)](https://ithelp.ithome.com.tw/articles/10374805)
-👉 [對應 React (II)](https://ithelp.ithome.com.tw/articles/10374827)
-👉 [對應 React (III)](https://ithelp.ithome.com.tw/articles/10374977)
-👉 [對應 React (IV)](https://ithelp.ithome.com.tw/articles/10375129)
-👉 [對應 React (V)](https://ithelp.ithome.com.tw/articles/10375334)
+👉 [對應 React (I)](https://ithelp.ithome.com.tw/articles/10374805)  
+👉 [對應 React (II)](https://ithelp.ithome.com.tw/articles/10374827)  
+👉 [對應 React (III)](https://ithelp.ithome.com.tw/articles/10374977)  
+👉 [對應 React (IV)](https://ithelp.ithome.com.tw/articles/10375129)  
+👉 [對應 React (V)](https://ithelp.ithome.com.tw/articles/10375334)  
 👉 [對應 React (VI)](https://ithelp.ithome.com.tw/articles/10375381)
 
 ## Lesson 8: vue case
 
 對應系列文章中，vue 應用的內容  
-👉 [對應 Vue (I)](https://ithelp.ithome.com.tw/articles/10375400)
+👉 [對應 Vue (I)](https://ithelp.ithome.com.tw/articles/10375400)  
 👉 [對應 Vue (II)](https://ithelp.ithome.com.tw/articles/10375747)
 
 ## Lesson 9: transaction async
 
-對應系列文章中，進階內核探討的 async transaction 議題
+對應系列文章中，進階內核探討的 async transaction 議題  
 👉 [文章連結](https://ithelp.ithome.com.tw/articles/10375779)
 
 ## Lesson 10: atomic transaction
 
-對應系列文章中，進階內核探討的原子交易
+對應系列文章中，進階內核探討的原子交易  
 👉 [文章連結](https://ithelp.ithome.com.tw/articles/10375799)
 
 ## Lesson 11: scheduler adv
 
-對應系列文章中，進階內核探討的 scheduler 進階議題
+對應系列文章中，進階內核探討的 scheduler 進階議題  
 👉 [文章連結](https://ithelp.ithome.com.tw/articles/10376293)
 
 ## Lesson 12: devtools
 
-對應系列文章中，進階內核實作的簡易 Devtools
+對應系列文章中，進階內核實作的簡易 Devtools  
+👉 [文章連結](https://ithelp.ithome.com.tw/articles/10376469)
 
 ## Lesson 13: two-phase flush
 
